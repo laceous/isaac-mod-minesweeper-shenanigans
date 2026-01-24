@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+    <name>Minesweeper Shenanigans</name>
+    <directory>minesweeper shenanigans</directory>
+    <id>3652641151</id>
+    <description>I was inspired by [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3457323483]What If Isaac Wasn't Isaac?[/url] and decided to implement Minesweeper in Isaac.
+
+There's technically a Minesweeper in Hyperbirth mod on the workshop, so I thought I'd try something different and implement this with ImGui provided by Repentogon.
+
+Press the tilde key to open the new debug console and menu. There's a new Shenanigans option that will let you play Minesweeper. The goal is to uncover all the squares without a bomb.
+
+There's no right-click support here so you'll need to choose the mouse (uncover) option or the flag (add/remove) option before clicking. There's also a checkered flag option that acts as a hybrid solution: click to add a flag, double-click to uncover the flagged square. You can hold one of the triggers on a plugged-in controller to temporarily use flag mode. Unfortunately, keyboard modifiers don't work here. The board's first click will never set a flag and is always safe.
+
+There's options to:
+[list]
+    [*]change how the first click works: safe, safe + empty
+    [*]change the color preset: off, dark, light (can be used with tools-&gt;style editor-&gt;colors)
+    [*]change the size of the squares: small, med, large
+    [*]change bomb counts: 1 to 75% max density
+[/list]</description>
+    <version>1.1</version>
+    <visibility>Public</visibility>
+    <tag id="Lua"/>
+</metadata>
