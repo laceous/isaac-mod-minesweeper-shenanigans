@@ -329,20 +329,23 @@ if REPENTOGON then
     
     -- create bombs
     local possibleBombIdxs = {}
+    local hasSquareLeft = mod:hasSquareLeft(i, w, h)
+    local hasSquareRight = mod:hasSquareRight(i, w, h)
+    local hasSquareUp = mod:hasSquareUp(i, w, h)
+    local hasSquareDown = mod:hasSquareDown(i, w, h)
     for j = 1, totalCount do
       -- first click is always safe
-      -- we could check for hasSquareLeft|Right|Up|Down but it's not strictly necessary here
       if i ~= j then
         if not mod.firstClickIsZero or
            (
-             i - w - 1 ~= j and
-             i - w ~= j and
-             i - w + 1 ~= j and
-             i - 1 ~= j and
-             i + 1 ~= j and
-             i + w - 1 ~= j and
-             i + w ~= j and
-             i + w + 1 ~= j
+             not (hasSquareUp and hasSquareLeft and i - w - 1 == j) and
+             not (hasSquareUp and i - w == j) and
+             not (hasSquareUp and hasSquareRight and i - w + 1 == j) and
+             not (hasSquareLeft and i - 1 == j) and
+             not (hasSquareRight and i + 1 == j) and
+             not (hasSquareDown and hasSquareLeft and i + w - 1 == j) and
+             not (hasSquareDown and i + w == j) and
+             not (hasSquareDown and hasSquareRight and i + w + 1 == j)
            )
         then
           table.insert(possibleBombIdxs, j)
