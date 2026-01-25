@@ -11,14 +11,17 @@ Press the tilde key to open the new debug console and menu. There's a new Shenan
 
 There's no right-click support here so you'll need to choose the mouse (uncover) option or the flag (add/remove) option before clicking. There's also a checkered flag option that acts as a hybrid solution: click to add a flag, double-click to uncover the flagged square. You can hold one of the triggers on a plugged-in controller to temporarily use flag mode. Unfortunately, keyboard modifiers don't work here. The board's first click will never set a flag and is always safe.
 
+The 3 buttons at the top-left of the board are: restart, view all (also ends the board), hint (uncovers a random square if you're stuck).
+
 There's options to:
 [list]
     [*]change how the first click works: safe, safe + empty
     [*]change the color preset: off, dark, light (can be used with tools-&gt;style editor-&gt;colors)
     [*]change the size of the squares: small, med, large
+    [*]enable the prize system: hearts, coins, keys, bombs, batteries, pills, cards, trinkets, grab bags, or treasure room items (only in intermediate/expert)
     [*]change bomb counts: 1 to 75% max density
 [/list]</description>
-    <version>1.2</version>
+    <version>1.3</version>
     <visibility>Public</visibility>
     <tag id="Lua"/>
 </metadata>

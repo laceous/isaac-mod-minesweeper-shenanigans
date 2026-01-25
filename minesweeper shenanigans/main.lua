@@ -45,6 +45,7 @@ if REPENTOGON then
   mod.flagStatus = 0 -- 0 (mouse), 1 (flag), 2 (special)
   mod.colorPreset = 'dark' -- off, dark, light
   mod.firstClickIsZero = true
+  mod.prizesEnabled = false
   
   function mod:onModsLoaded()
     mod:setupImGui()
@@ -99,6 +100,10 @@ if REPENTOGON then
         end
       end
     end, { 40, 50, 60 }, 1, true)
+    ImGui.AddCombobox('shenanigansTabMinesweeperSettings', 'shenanigansCmbMinesweeperSettingPrizes', 'Prizes', function(i)
+      mod.prizesEnabled = i == 1
+    end, { 'Disabled', 'Enabled' }, mod.prizesEnabled and 1 or 0, true)
+    ImGui.SetHelpmarker('shenanigansCmbMinesweeperSettingPrizes', 'You must be in a run, can\'t use the hint system, and the bomb count must be at least the default number to get a prize!\n\nPrizes include: hearts, coins, keys, bombs, batteries, pills, cards, trinkets, or grab bags. There\'s also a chance to get an item in intermediate or expert.\n\nBeginner: 2 prizes\nIntermediate: 2 prizes\nExpert: 3 prizes')
     ImGui.AddElement('shenanigansTabMinesweeperSettings', '', ImGuiElement.SeparatorText, 'Bomb Count')
     for _, v in ipairs({
                         { s = 'MinesweeperBeginner'    , text = 'Beginner'    , max = 60 },
@@ -116,6 +121,7 @@ if REPENTOGON then
   function mod:setupBoard(s, w, h, bombCount)
     local tab = 'shenanigansTab' .. s
     local timer = { enabled = false, startTime = 0, seconds = 0 }
+    local hintUsed = false
     
     local data = {}
     mod.globalData[s] = data
@@ -123,6 +129,7 @@ if REPENTOGON then
     
     local btnRestartId = 'shenanigansBtn' .. s .. 'Restart'
     local btnViewId = 'shenanigansBtn' .. s .. 'View'
+    local btnHintId = 'shenanigansBtn' .. s .. 'Hint'
     local radFlagId = 'shenanigansRad' .. s .. 'Flag'
     local txtBombsId = 'shenanigansTxt' .. s .. 'Bombs'
     local txtTimerid = 'shenanigansTxt' .. s .. 'Timer'
@@ -138,6 +145,7 @@ if REPENTOGON then
       mod:updateColors(data, s, w, h)
       timer.enabled = false
       timer.seconds = 0
+      hintUsed = false
     end, false)
     ImGui.AddElement(tab, '', ImGuiElement.SameLine, '')
     ImGui.AddButton(tab, btnViewId, '\u{f06e}', function()
@@ -160,6 +168,23 @@ if REPENTOGON then
       mod:updateBombCount(data, s, w, h, bombCount)
       mod:updateColors(data, s, w, h)
       timer.enabled = false
+    end, false)
+    ImGui.AddElement(tab, '', ImGuiElement.SameLine, '')
+    ImGui.AddButton(tab, btnHintId, '\u{f059}', function()
+      local idxs = {}
+      for i = 1, w * h do
+        if data[i] and not data[i].uncovered and not data[i].flagged and data[i].num < 100 then
+          table.insert(idxs, i)
+        end
+      end
+      if #idxs > 1 then -- force the user to make the winning click
+        local rand = Random()
+        local rng = RNG(rand <= 0 and 1 or rand, mod.rngShiftIdx)
+        hintUsed = true
+        mod:uncoverSquares(data, 0, idxs[rng:RandomInt(#idxs) + 1], s, w, h, timer, bombCount, hintUsed)
+        mod:updateBombCount(data, s, w, h, bombCount)
+        mod:updateColors(data, s, w, h)
+      end
     end, false)
     ImGui.AddElement(tab, '', ImGuiElement.SameLine, '')
     
@@ -193,12 +218,12 @@ if REPENTOGON then
             timer.enabled = true
             timer.startTime = os.time()
             mod:generateData(data, bombCount, iLocal, w, h)
-            mod:uncoverSquares(data, 0, iLocal, s, w, h, timer)
+            mod:uncoverSquares(data, 0, iLocal, s, w, h, timer, bombCount, hintUsed)
             mod:updateBombCount(data, s, w, h, bombCount)
             mod:updateColors(data, s, w, h)
           elseif not data[iLocal].uncovered then
             local flagStatus = (mod.flagStatus ~= 1 and mod:isControllerTriggerPressed()) and 1 or mod.flagStatus
-            mod:uncoverSquares(data, flagStatus, iLocal, s, w, h, timer)
+            mod:uncoverSquares(data, flagStatus, iLocal, s, w, h, timer, bombCount, hintUsed)
             mod:updateBombCount(data, s, w, h, bombCount)
             mod:updateColors(data, s, w, h)
           end
@@ -211,7 +236,7 @@ if REPENTOGON then
     end
   end
   
-  function mod:uncoverSquares(data, flagStatus, i, s, w, h, timer, iter)
+  function mod:uncoverSquares(data, flagStatus, i, s, w, h, timer, bombCount, hintUsed, iter)
     iter = iter or 0
     
     if mod:isFailure(data) or mod:isSuccess(data) then
@@ -267,7 +292,7 @@ if REPENTOGON then
                             })
           do
             if v.cond and not data[v.idx].uncovered and data[v.idx].num < 100 then
-              mod:uncoverSquares(data, 0, v.idx, s, w, h, timer, iter + 1)
+              mod:uncoverSquares(data, 0, v.idx, s, w, h, timer, bombCount, hintUsed, iter + 1)
             end
           end
         end
@@ -283,12 +308,74 @@ if REPENTOGON then
             mod:setAllFlags(data, s, w, h)
             ImGui.UpdateText('shenanigansBtn' .. s .. 'Restart', mod.faceHappy)
             ImGui.PushNotification('You win!' .. mod.faceHappy, ImGuiNotificationType.SUCCESS, 10000)
+            local prizes = mod:spawnPrizes(s, bombCount, hintUsed)
+            if prizes then
+              ImGui.PushNotification('Prizes spawned: ' .. table.concat(prizes, ', '), ImGuiNotificationType.SUCCESS, 10000)
+            end
             sfx:Play(SoundEffect.SOUND_MOM_VOX_DEATH) -- SOUND_MOM_VOX_FILTERED_DEATH_1, SOUND_PRETTY_FLY
             timer.enabled = false
           end
         end
       end
     end
+  end
+  
+  -- todo: time-based prizes?
+  function mod:spawnPrizes(s, bombCount, hintUsed)
+    if not mod.prizesEnabled or not Isaac.IsInGame() or hintUsed then
+      return
+    end
+    
+    if s == 'MinesweeperBeginner' and bombCount < 10 then
+      return
+    end
+    if s == 'MinesweeperIntermediate' and bombCount < 40 then
+      return
+    end
+    if s == 'MinesweeperExpert' and bombCount < 99 then
+      return
+    end
+    
+    local possiblePrizes = { 'heart', 'coin', 'key', 'bomb', 'battery', 'pill', 'card', 'trinket', 'grab bag' }
+    if s == 'MinesweeperIntermediate' or s == 'MinesweeperExpert' then
+      table.insert(possiblePrizes, 'item')
+    end
+    
+    local itemPool = game:GetItemPool()
+    local rand = Random()
+    local rng = RNG(rand <= 0 and 1 or rand, mod.rngShiftIdx)
+    local numPrizes = s == 'MinesweeperExpert' and 3 or 2
+    local prizes = {}
+    
+    for i = 1, numPrizes do
+      local prize = table.remove(possiblePrizes, rng:RandomInt(#possiblePrizes) + 1)
+      table.insert(prizes, prize)
+      if prize == 'heart' then
+        Isaac.Spawn(EntityType.ENTITY_PICKUP, PickupVariant.PICKUP_HEART, 0, Isaac.GetFreeNearPosition(Isaac.GetRandomPosition(), 3), Vector.Zero, nil)
+      elseif prize == 'coin' then
+        Isaac.Spawn(EntityType.ENTITY_PICKUP, PickupVariant.PICKUP_COIN, 0, Isaac.GetFreeNearPosition(Isaac.GetRandomPosition(), 3), Vector.Zero, nil)
+      elseif prize == 'key' then
+        Isaac.Spawn(EntityType.ENTITY_PICKUP, PickupVariant.PICKUP_KEY, 0, Isaac.GetFreeNearPosition(Isaac.GetRandomPosition(), 3), Vector.Zero, nil)
+      elseif prize == 'bomb' then
+        Isaac.Spawn(EntityType.ENTITY_PICKUP, PickupVariant.PICKUP_BOMB, 0, Isaac.GetFreeNearPosition(Isaac.GetRandomPosition(), 3), Vector.Zero, nil)
+      elseif prize == 'battery' then
+        Isaac.Spawn(EntityType.ENTITY_PICKUP, PickupVariant.PICKUP_LIL_BATTERY, 0, Isaac.GetFreeNearPosition(Isaac.GetRandomPosition(), 3), Vector.Zero, nil)
+      elseif prize == 'pill' then
+        Isaac.Spawn(EntityType.ENTITY_PICKUP, PickupVariant.PICKUP_PILL, 0, Isaac.GetFreeNearPosition(Isaac.GetRandomPosition(), 3), Vector.Zero, nil)
+      elseif prize == 'card' then
+        Isaac.Spawn(EntityType.ENTITY_PICKUP, PickupVariant.PICKUP_TAROTCARD, 0, Isaac.GetFreeNearPosition(Isaac.GetRandomPosition(), 3), Vector.Zero, nil)
+      elseif prize == 'trinket' then
+        Isaac.Spawn(EntityType.ENTITY_PICKUP, PickupVariant.PICKUP_TRINKET, 0, Isaac.GetFreeNearPosition(Isaac.GetRandomPosition(), 3), Vector.Zero, nil)
+      elseif prize == 'grab bag' then
+        Isaac.Spawn(EntityType.ENTITY_PICKUP, PickupVariant.PICKUP_GRAB_BAG, 0, Isaac.GetFreeNearPosition(Isaac.GetRandomPosition(), 3), Vector.Zero, nil)
+      elseif prize == 'item' then
+        -- don't spawn extra devil/angel room items
+        local collectible = itemPool:GetCollectible(ItemPoolType.POOL_TREASURE, true, nil, CollectibleType.COLLECTIBLE_NULL)
+        Isaac.Spawn(EntityType.ENTITY_PICKUP, PickupVariant.PICKUP_COLLECTIBLE, collectible, Isaac.GetFreeNearPosition(Isaac.GetRandomPosition(), 3), Vector.Zero, nil)
+      end
+    end
+    
+    return prizes
   end
   
   function mod:setAllFlags(data, s, w, h)
