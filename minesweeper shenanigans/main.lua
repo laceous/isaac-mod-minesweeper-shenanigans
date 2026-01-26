@@ -47,7 +47,8 @@ if REPENTOGON then
   mod.colorPreset = 'dark' -- off, dark, light
   mod.firstClickIsZero = true
   mod.prizesEnabled = false
-  mod.showNumbers = true
+  mod.numbersEnabled = true
+  mod.chordsEnabled = true
   
   function mod:onModsLoaded()
     mod:setupImGui()
@@ -78,8 +79,11 @@ if REPENTOGON then
     ImGui.AddCombobox('shenanigansTabMinesweeperSettings', 'shenanigansCmbMinesweeperSettingFirstClick', 'First click', function(i)
       mod.firstClickIsZero = i == 1
     end, { 'Safe', 'Safe + empty' }, mod.firstClickIsZero and 1 or 0, true)
+    ImGui.AddCombobox('shenanigansTabMinesweeperSettings', 'shenanigansCmbMinesweeperSettingChords', 'Chords', function(i)
+      mod.chordsEnabled = i == 1
+    end, { 'Disabled', 'Enabled' }, mod.chordsEnabled and 1 or 0, true)
     ImGui.AddCombobox('shenanigansTabMinesweeperSettings', 'shenanigansCmbMinesweeperSettingNumbers', 'Numbers', function(i)
-      mod.showNumbers = i == 1
+      mod.numbersEnabled = i == 1
       for _, v in ipairs({
                           { s = 'MinesweeperBeginner'    , w = 9 , h = 9 },
                           { s = 'MinesweeperIntermediate', w = 16, h = 16 },
@@ -88,12 +92,12 @@ if REPENTOGON then
       do
         for i = 1, v.w * v.h do
           if mod.globalData[v.s][i] and mod.globalData[v.s][i].uncovered and mod.globalData[v.s][i].num >= 1 and mod.globalData[v.s][i].num <= 8 then
-            local txt = mod.showNumbers and mod.globalData[v.s][i].num or mod.circle
+            local txt = mod.numbersEnabled and mod.globalData[v.s][i].num or mod.circle
             ImGui.UpdateText('shenanigansBtn' .. v.s .. i, txt)
           end
         end
       end
-    end, { 'Disabled', 'Enabled' }, mod.showNumbers and 1 or 0, true)
+    end, { 'Disabled', 'Enabled' }, mod.numbersEnabled and 1 or 0, true)
     ImGui.SetHelpmarker('shenanigansCmbMinesweeperSettingNumbers', 'Make sure to enable colors if you disable numbers')
     ImGui.AddCombobox('shenanigansTabMinesweeperSettings', 'shenanigansCmbMinesweeperSettingColors', 'Colors', function(_, s)
       mod.colorPreset = string.lower(s)
@@ -155,8 +159,8 @@ if REPENTOGON then
     
     ImGui.AddButton(tab, btnRestartId, mod.faceNormal, function()
       mod:clearData(data)
-      for j = 1, w * h do
-        ImGui.UpdateText('shenanigansBtn' .. s .. j, mod.square)
+      for i = 1, w * h do
+        ImGui.UpdateText('shenanigansBtn' .. s .. i, mod.square)
       end
       ImGui.UpdateText(btnRestartId, mod.faceNormal)
       bombCount = mod.bombCounts[s]
@@ -174,7 +178,7 @@ if REPENTOGON then
         mod:generateData(data, bombCount, rng:RandomInt(w * h) + 1, w, h)
       end
       for i = 1, w * h do
-        local txt = mod.showNumbers and data[i].num or mod.circle
+        local txt = mod.numbersEnabled and data[i].num or mod.circle
         if data[i].num == 0 then
           txt = ''
         elseif data[i].num == 100 then
@@ -190,6 +194,9 @@ if REPENTOGON then
     end, false)
     ImGui.AddElement(tab, '', ImGuiElement.SameLine, '')
     ImGui.AddButton(tab, btnHintId, '\u{f059}', function()
+      if mod:isFailure(data) or mod:isSuccess(data) then
+        return
+      end
       local idxs = {}
       local idxsAboveZero = {}
       for i = 1, w * h do
@@ -242,14 +249,12 @@ if REPENTOGON then
             timer.startTime = os.time()
             mod:generateData(data, bombCount, iLocal, w, h)
             mod:uncoverSquares(data, 0, iLocal, s, w, h, timer, bombCount, hintUsed)
-            mod:updateBombCount(data, s, w, h, bombCount)
-            mod:updateColors(data, s, w, h)
-          elseif not data[iLocal].uncovered then
+          else
             local flagStatus = (mod.flagStatus ~= 1 and mod:isControllerTriggerPressed()) and 1 or mod.flagStatus
             mod:uncoverSquares(data, flagStatus, iLocal, s, w, h, timer, bombCount, hintUsed)
-            mod:updateBombCount(data, s, w, h, bombCount)
-            mod:updateColors(data, s, w, h)
           end
+          mod:updateBombCount(data, s, w, h, bombCount)
+          mod:updateColors(data, s, w, h)
         end, false)
         ImGui.SetSize(btnId, 50, 50)
         if iW ~= w then
@@ -262,7 +267,7 @@ if REPENTOGON then
   function mod:uncoverSquares(data, flagStatus, i, s, w, h, timer, bombCount, hintUsed, iter)
     iter = iter or 0
     
-    if mod:isFailure(data) or mod:isSuccess(data) then
+    if iter == 0 and (mod:isFailure(data) or mod:isSuccess(data)) then
       return
     end
     
@@ -277,6 +282,42 @@ if REPENTOGON then
       end
     end
     
+    if mod.chordsEnabled and iter == 0 and data[i].uncovered and data[i].num >= 1 and data[i].num <= 8 then
+      local flagCount = 0
+      local coveredSquares = {}
+      local hasSquareLeft = mod:hasSquareLeft(i, w, h)
+      local hasSquareRight = mod:hasSquareRight(i, w, h)
+      local hasSquareUp = mod:hasSquareUp(i, w, h)
+      local hasSquareDown = mod:hasSquareDown(i, w, h)
+      for _, v in ipairs({
+                          { cond = hasSquareUp and hasSquareLeft   , idx = i - w - 1 },
+                          { cond = hasSquareUp                     , idx = i - w },
+                          { cond = hasSquareUp and hasSquareRight  , idx = i - w + 1 },
+                          { cond = hasSquareLeft                   , idx = i - 1 },
+                          { cond = hasSquareRight                  , idx = i + 1 },
+                          { cond = hasSquareDown and hasSquareLeft , idx = i + w - 1 },
+                          { cond = hasSquareDown                   , idx = i + w },
+                          { cond = hasSquareDown and hasSquareRight, idx = i + w + 1 },
+                        })
+      do
+        if v.cond then
+          if data[v.idx].flagged then
+            flagCount = flagCount + 1
+          elseif not data[v.idx].uncovered then
+            table.insert(coveredSquares, v.idx)
+          end
+        end
+      end
+      if flagCount == data[i].num and #coveredSquares > 0 then
+        for _, v in ipairs(coveredSquares) do
+          mod:uncoverSquares(data, 0, v, s, w, h, timer, bombCount, hintUsed, iter + 1)
+        end
+        mod:doSuccessOrFailure(data, s, w, h, timer, bombCount, hintUsed)
+      end
+      
+      return
+    end
+    
     if flag then
       if not data[i].uncovered then
         if data[i].flagged then
@@ -288,8 +329,8 @@ if REPENTOGON then
         end
       end
     else
-      if not data[i].flagged then
-        local txt = mod.showNumbers and data[i].num or mod.circle
+      if not data[i].uncovered and not data[i].flagged then
+        local txt = mod.numbersEnabled and data[i].num or mod.circle
         if data[i].num == 0 then
           txt = ''
         elseif data[i].num == 100 then
@@ -314,32 +355,36 @@ if REPENTOGON then
                               { cond = hasSquareDown and hasSquareRight, idx = i + w + 1 },
                             })
           do
-            if v.cond and not data[v.idx].uncovered and data[v.idx].num < 100 then
+            if v.cond and not data[v.idx].uncovered and not data[v.idx].flagged and data[v.idx].num < 100 then
               mod:uncoverSquares(data, 0, v.idx, s, w, h, timer, bombCount, hintUsed, iter + 1)
             end
           end
         end
         
         if iter == 0 then
-          if mod:isFailure(data) then
-            -- setAllBombs? you can just click the view button
-            ImGui.UpdateText('shenanigansBtn' .. s .. 'Restart', mod.faceSad)
-            ImGui.PushNotification('You lose!' .. mod.faceSad, ImGuiNotificationType.ERROR, 10000)
-            sfx:Play(SoundEffect.SOUND_MOM_VOX_EVILLAUGH) -- SOUND_MOM_VOX_FILTERED_EVILLAUGH
-            timer.enabled = false
-          elseif mod:isSuccess(data) then
-            mod:setAllFlags(data, s, w, h)
-            ImGui.UpdateText('shenanigansBtn' .. s .. 'Restart', mod.faceHappy)
-            ImGui.PushNotification('You win!' .. mod.faceHappy, ImGuiNotificationType.SUCCESS, 10000)
-            local prizes = mod:spawnPrizes(s, bombCount, hintUsed)
-            if prizes then
-              ImGui.PushNotification('Prizes: ' .. table.concat(prizes, ', '), ImGuiNotificationType.SUCCESS, 10000)
-            end
-            sfx:Play(SoundEffect.SOUND_MOM_VOX_DEATH) -- SOUND_MOM_VOX_FILTERED_DEATH_1, SOUND_PRETTY_FLY
-            timer.enabled = false
-          end
+          mod:doSuccessOrFailure(data, s, w, h, timer, bombCount, hintUsed)
         end
       end
+    end
+  end
+  
+  function mod:doSuccessOrFailure(data, s, w, h, timer, bombCount, hintUsed)
+    if mod:isFailure(data) then
+      -- setAllBombs? you can just click the view button
+      ImGui.UpdateText('shenanigansBtn' .. s .. 'Restart', mod.faceSad)
+      ImGui.PushNotification('You lose!' .. mod.faceSad, ImGuiNotificationType.ERROR, 10000)
+      sfx:Play(SoundEffect.SOUND_MOM_VOX_EVILLAUGH) -- SOUND_MOM_VOX_FILTERED_EVILLAUGH
+      timer.enabled = false
+    elseif mod:isSuccess(data) then
+      mod:setAllFlags(data, s, w, h)
+      ImGui.UpdateText('shenanigansBtn' .. s .. 'Restart', mod.faceHappy)
+      ImGui.PushNotification('You win!' .. mod.faceHappy, ImGuiNotificationType.SUCCESS, 10000)
+      local prizes = mod:spawnPrizes(s, bombCount, hintUsed)
+      if prizes then
+        ImGui.PushNotification('Prizes: ' .. table.concat(prizes, ', '), ImGuiNotificationType.SUCCESS, 10000)
+      end
+      sfx:Play(SoundEffect.SOUND_MOM_VOX_DEATH) -- SOUND_MOM_VOX_FILTERED_DEATH_1, SOUND_PRETTY_FLY
+      timer.enabled = false
     end
   end
   
