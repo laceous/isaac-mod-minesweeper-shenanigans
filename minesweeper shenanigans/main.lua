@@ -7,6 +7,7 @@ if REPENTOGON then
   mod.faceNormal = '\u{f5b3}'
   mod.faceHappy = '\u{f59a}'
   mod.faceSad = '\u{f5c8}'
+  mod.circle = '\u{f111}'
   mod.square = '\u{f45c}'
   mod.flagSolid = '\u{f024}'
   mod.flagCheckered = '\u{f11e}'
@@ -46,6 +47,7 @@ if REPENTOGON then
   mod.colorPreset = 'dark' -- off, dark, light
   mod.firstClickIsZero = true
   mod.prizesEnabled = false
+  mod.showNumbers = true
   
   function mod:onModsLoaded()
     mod:setupImGui()
@@ -76,6 +78,23 @@ if REPENTOGON then
     ImGui.AddCombobox('shenanigansTabMinesweeperSettings', 'shenanigansCmbMinesweeperSettingFirstClick', 'First click', function(i)
       mod.firstClickIsZero = i == 1
     end, { 'Safe', 'Safe + empty' }, mod.firstClickIsZero and 1 or 0, true)
+    ImGui.AddCombobox('shenanigansTabMinesweeperSettings', 'shenanigansCmbMinesweeperSettingNumbers', 'Numbers', function(i)
+      mod.showNumbers = i == 1
+      for _, v in ipairs({
+                          { s = 'MinesweeperBeginner'    , w = 9 , h = 9 },
+                          { s = 'MinesweeperIntermediate', w = 16, h = 16 },
+                          { s = 'MinesweeperExpert'      , w = 30, h = 16 },
+                        })
+      do
+        for i = 1, v.w * v.h do
+          if mod.globalData[v.s][i] and mod.globalData[v.s][i].uncovered and mod.globalData[v.s][i].num >= 1 and mod.globalData[v.s][i].num <= 8 then
+            local txt = mod.showNumbers and mod.globalData[v.s][i].num or mod.circle
+            ImGui.UpdateText('shenanigansBtn' .. v.s .. i, txt)
+          end
+        end
+      end
+    end, { 'Disabled', 'Enabled' }, mod.showNumbers and 1 or 0, true)
+    ImGui.SetHelpmarker('shenanigansCmbMinesweeperSettingNumbers', 'Make sure to enable colors if you disable numbers')
     ImGui.AddCombobox('shenanigansTabMinesweeperSettings', 'shenanigansCmbMinesweeperSettingColors', 'Colors', function(_, s)
       mod.colorPreset = string.lower(s)
       for _, v in ipairs({
@@ -155,10 +174,10 @@ if REPENTOGON then
         mod:generateData(data, bombCount, rng:RandomInt(w * h) + 1, w, h)
       end
       for i = 1, w * h do
-        local txt = data[i].num
-        if txt == 0 then
+        local txt = mod.showNumbers and data[i].num or mod.circle
+        if data[i].num == 0 then
           txt = ''
-        elseif txt == 100 then
+        elseif data[i].num == 100 then
           txt = mod.bomb
         end
         ImGui.UpdateText('shenanigansBtn' .. s .. i, txt)
@@ -270,10 +289,10 @@ if REPENTOGON then
       end
     else
       if not data[i].flagged then
-        local txt = data[i].num
-        if txt == 0 then
+        local txt = mod.showNumbers and data[i].num or mod.circle
+        if data[i].num == 0 then
           txt = ''
-        elseif txt == 100 then
+        elseif data[i].num == 100 then
           txt = mod.bomb
         end
         ImGui.UpdateText('shenanigansBtn' .. s .. i, txt)
