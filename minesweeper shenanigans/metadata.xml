@@ -21,7 +21,7 @@ There's options to:
     [*]enable the prize system: hearts, coins, keys, bombs, batteries, pills, cards, trinkets, grab bags, or treasure room items (only in intermediate/expert)
     [*]change bomb counts: 1 to 75% max density
 [/list]</description>
-    <version>1.4</version>
+    <version>1.5</version>
     <visibility>Public</visibility>
     <tag id="Lua"/>
 </metadata>

@@ -314,7 +314,7 @@ if REPENTOGON then
             ImGui.PushNotification('You win!' .. mod.faceHappy, ImGuiNotificationType.SUCCESS, 10000)
             local prizes = mod:spawnPrizes(s, bombCount, hintUsed)
             if prizes then
-              ImGui.PushNotification('Prizes spawned: ' .. table.concat(prizes, ', '), ImGuiNotificationType.SUCCESS, 10000)
+              ImGui.PushNotification('Prizes: ' .. table.concat(prizes, ', '), ImGuiNotificationType.SUCCESS, 10000)
             end
             sfx:Play(SoundEffect.SOUND_MOM_VOX_DEATH) -- SOUND_MOM_VOX_FILTERED_DEATH_1, SOUND_PRETTY_FLY
             timer.enabled = false
