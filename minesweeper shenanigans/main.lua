@@ -172,12 +172,16 @@ if REPENTOGON then
     ImGui.AddElement(tab, '', ImGuiElement.SameLine, '')
     ImGui.AddButton(tab, btnHintId, '\u{f059}', function()
       local idxs = {}
+      local idxsAboveZero = {}
       for i = 1, w * h do
         if data[i] and not data[i].uncovered and not data[i].flagged and data[i].num < 100 then
           table.insert(idxs, i)
+          if data[i].num > 0 then
+            table.insert(idxsAboveZero, i)
+          end
         end
       end
-      if #idxs > 1 then -- force the user to make the winning click
+      if #idxsAboveZero > 1 then -- force the user to make the winning click
         local rand = Random()
         local rng = RNG(rand <= 0 and 1 or rand, mod.rngShiftIdx)
         hintUsed = true
