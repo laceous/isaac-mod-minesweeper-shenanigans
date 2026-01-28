@@ -21,9 +21,9 @@ There's options to:
     [*]change the color preset: off, dark, light (can be used with tools-&gt;style editor-&gt;colors)
     [*]change the size of the squares: small, med, large
     [*]enable/disable the prize system: hearts, coins, keys, bombs, batteries, pills, cards, trinkets, grab bags, or treasure room items (only for intermediate/expert)
-    [*]change bomb counts: 1 to 75% max density
+    [*]edit custom board: 1x1 to 30x16; bomb count: 0 to 99% max density
 [/list]</description>
-    <version>1.7</version>
+    <version>1.8</version>
     <visibility>Public</visibility>
     <tag id="Lua"/>
 </metadata>
