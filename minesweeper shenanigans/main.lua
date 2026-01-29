@@ -45,7 +45,7 @@ if REPENTOGON then
   }
   
   mod.flagStatus = 0 -- 0 (mouse), 1 (flag), 2 (special)
-  mod.prizeStatus = 0 -- 0 (off), 1 (pickups), 3 (pickups or item)
+  mod.prizeStatus = 0 -- 0 (off), 1 (pickups), 2 (pickups or item)
   mod.squareSize = 50 -- 40, 50, 60
   mod.colorPreset = 'dark' -- off, dark, light
   mod.firstClickIsZero = true
