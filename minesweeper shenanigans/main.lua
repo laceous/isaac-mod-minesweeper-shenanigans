@@ -546,7 +546,7 @@ if REPENTOGON then
     local totalCount = w * h
     
     local firstClickIsZero = mod.firstClickIsZero
-    if (w * h) - 9 < bombCount then
+    if totalCount - 9 < bombCount then
       firstClickIsZero = false
     end
     
