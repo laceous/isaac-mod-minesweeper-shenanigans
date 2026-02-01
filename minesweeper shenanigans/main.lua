@@ -216,7 +216,7 @@ if REPENTOGON then
     local btnHintId = 'shenanigansBtn' .. s .. 'Hint'
     local radFlagId = 'shenanigansRad' .. s .. 'Flag'
     local txtBombsId = 'shenanigansTxt' .. s .. 'Bombs'
-    local txtTimerid = 'shenanigansTxt' .. s .. 'Timer'
+    local txtTimerId = 'shenanigansTxt' .. s .. 'Timer'
     
     ImGui.AddButton(tab, btnRestartId, mod.faceNormal, function()
       mod:clearData(data)
@@ -288,12 +288,12 @@ if REPENTOGON then
     ImGui.AddElement(tab, 'shenanigansSl' .. s .. 'Top4', ImGuiElement.SameLine, '')
     ImGui.AddText(tab, string.format(mod.bombTemplate, bombCount), false, txtBombsId)
     ImGui.AddElement(tab, 'shenanigansSl' .. s .. 'Top5', ImGuiElement.SameLine, '')
-    ImGui.AddText(tab, string.format(mod.timerTemplate, 0), false, txtTimerid)
-    ImGui.AddCallback(txtTimerid, ImGuiCallback.Visible, function()
+    ImGui.AddText(tab, string.format(mod.timerTemplate, 0), false, txtTimerId)
+    ImGui.AddCallback(txtTimerId, ImGuiCallback.Visible, function()
       if timer.enabled then
         timer.seconds = os.difftime(os.time(), timer.startTime)
       end
-      ImGui.UpdateText(txtTimerid, string.format(mod.timerTemplate, timer.seconds))
+      ImGui.UpdateText(txtTimerId, string.format(mod.timerTemplate, timer.seconds))
     end)
     ImGui.AddElement(tab, 'shenanigansSep' .. s, ImGuiElement.Separator, '')
     
