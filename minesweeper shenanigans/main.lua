@@ -19,6 +19,7 @@ if REPENTOGON then
   mod.customWidth = 4
   mod.customHeight = 4
   mod.customBombCount = 4
+  mod.seed = 0
   
   mod.colorPresets = {
     -- colors borrowed from minesweeper.online
@@ -143,7 +144,49 @@ if REPENTOGON then
     ImGui.AddCombobox('shenanigansTabMinesweeperSettings', 'shenanigansCmbMinesweeperSettingPrizes', 'Prizes', function(i)
       mod.prizeStatus = i
     end, { 'Off', 'Pickups', 'Pickups or item' }, mod.prizeStatus, true)
-    ImGui.SetHelpmarker('shenanigansCmbMinesweeperSettingPrizes', 'You must be in a run and can\'t use the hint system to be eligible for a prize!\n\nPrizes include: hearts, coins, keys, bombs, batteries, pills, cards, trinkets, or grab bags. You can also enable a chance for a treasure room item which will replace the pickups if successful (only for intermediate or expert).\n\nBeginner: 2 pickups\nIntermediate: 3 pickups or 1 item\nExpert: 4 pickups or 1 item\nCustom: 0 pickups')
+    ImGui.SetHelpmarker('shenanigansCmbMinesweeperSettingPrizes', 'You must be in a run, can\'t use the hint system, and the board can\'t be seeded to be eligible for a prize!\n\nPrizes include: hearts, coins, keys, bombs, batteries, pills, cards, trinkets, or grab bags. You can also enable a chance for a treasure room item which will replace the pickups if successful (only for intermediate or expert).\n\nBeginner: 2 pickups\nIntermediate: 3 pickups or 1 item\nExpert: 4 pickups or 1 item\nCustom: 0 pickups')
+    ImGui.AddInputText('shenanigansTabMinesweeperSettings', 'shenanigansTxtMinesweeperSettingSeed', 'Seed', nil, '', 'Random...')
+    ImGui.AddCallback('shenanigansTxtMinesweeperSettingSeed', ImGuiCallback.DeactivatedAfterEdit, function(s)
+      s = string.gsub(s, '%W', '') -- remove any non-alphanumeric characters
+      s = string.upper(s)          -- upper case
+      
+      if string.len(s) > 8 then
+        s = string.sub(s, 1, 8)
+      end
+      
+      local map = { ['I'] = '1', ['O'] = '0', ['U'] = 'V' }
+      local temp = ''
+      for i = 1, string.len(s) do
+        local c = string.sub(s, i, i)
+        local c2 = map[c]
+        if c2 then
+          c = c2
+        end
+        temp = temp .. c
+      end
+      s = temp
+      
+      if string.len(s) > 4 then
+        s = string.sub(s, 1, 4) .. ' ' .. string.sub(s, 5, string.len(s)) -- insert space
+      end
+      
+      if not Seeds.IsStringValidSeed(s) then
+        s = ''
+      end
+      
+      mod.seed = Seeds.String2Seed(s)
+      ImGui.UpdateData('shenanigansTxtMinesweeperSettingSeed', ImGuiData.Value, s)
+    end)
+    ImGui.SetHelpmarker('shenanigansTxtMinesweeperSettingSeed', 'Board generation is based on seed, width x height, bomb count, and first click (location and safe vs safe + empty')
+    ImGui.AddElement('shenanigansTabMinesweeperSettings', '', ImGuiElement.SameLine, '')
+    ImGui.AddButton('shenanigansTabMinesweeperSettings', 'shenanigansBtnMinesweeperSettingSeed', '\u{f11b}', function()
+      if Isaac.IsInGame() then
+        local seeds = game:GetSeeds()
+        mod.seed = seeds:GetStartSeed()
+        ImGui.UpdateData('shenanigansTxtMinesweeperSettingSeed', ImGuiData.Value, seeds:GetStartSeedString())
+      end
+    end, false)
+    ImGui.SetTooltip('shenanigansBtnMinesweeperSettingSeed', 'Use in-game starting seed')
     ImGui.AddElement('shenanigansTabMinesweeperSettings', '', ImGuiElement.SeparatorText, 'Custom')
     local customBoard = { width = mod.customWidth, height = mod.customHeight, bombCount = mod.customBombCount }
     for _, v in ipairs({
@@ -177,6 +220,7 @@ if REPENTOGON then
                         'shenanigansBtn' .. s .. 'Restart',
                         'shenanigansBtn' .. s .. 'View',
                         'shenanigansBtn' .. s .. 'Hint',
+                        'shenanigansBtn' .. s .. 'Seed',
                         'shenanigansRad' .. s .. 'Flag',
                         'shenanigansTxt' .. s .. 'Bombs',
                         'shenanigansTxt' .. s .. 'Timer',
@@ -185,6 +229,7 @@ if REPENTOGON then
                         'shenanigansSl' .. s .. 'Top3',
                         'shenanigansSl' .. s .. 'Top4',
                         'shenanigansSl' .. s .. 'Top5',
+                        'shenanigansSl' .. s .. 'Top6',
                         'shenanigansSep' .. s,
                       })
     do
@@ -207,6 +252,8 @@ if REPENTOGON then
     local tab = 'shenanigansTab' .. s
     local timer = { enabled = false, startTime = 0, seconds = 0 }
     local hintUsed = false
+    local firstClick = 0
+    local seed = 0
     
     local data = {}
     mod.globalData[s] = data
@@ -214,6 +261,7 @@ if REPENTOGON then
     local btnRestartId = 'shenanigansBtn' .. s .. 'Restart'
     local btnViewId = 'shenanigansBtn' .. s .. 'View'
     local btnHintId = 'shenanigansBtn' .. s .. 'Hint'
+    local btnSeedId = 'shenanigansBtn' .. s .. 'Seed'
     local radFlagId = 'shenanigansRad' .. s .. 'Flag'
     local txtBombsId = 'shenanigansTxt' .. s .. 'Bombs'
     local txtTimerId = 'shenanigansTxt' .. s .. 'Timer'
@@ -229,13 +277,22 @@ if REPENTOGON then
       timer.enabled = false
       timer.seconds = 0
       hintUsed = false
+      firstClick = 0
+      seed = 0
     end, false)
     ImGui.AddElement(tab, 'shenanigansSl' .. s .. 'Top1', ImGuiElement.SameLine, '')
     ImGui.AddButton(tab, btnViewId, '\u{f06e}', function()
       if #data == 0 then
-        local rand = Random()
-        local rng = RNG(rand <= 0 and 1 or rand, mod.rngShiftIdx)
-        mod:generateData(data, bombCount, rng:RandomInt(w * h) + 1, w, h)
+        seed = mod.seed
+        if seed > 0 then
+          hintUsed = true
+        else
+          local rand = Random()
+          seed = rand <= 0 and 1 or rand
+        end
+        local rng = RNG(seed, mod.rngShiftIdx)
+        firstClick = rng:RandomInt(w * h) + 1
+        mod:generateData(data, seed, bombCount, firstClick, w, h)
       end
       for i = 1, w * h do
         local txt = mod.numbersEnabled and data[i].num or mod.circle
@@ -269,7 +326,7 @@ if REPENTOGON then
       end
       if #idxsAboveZero > 1 then -- force the user to make the winning click
         local rand = Random()
-        local rng = RNG(rand <= 0 and 1 or rand, mod.rngShiftIdx)
+        local rng = RNG(rand <= 0 and 1 or rand, mod.rngShiftIdx) -- not seeded
         hintUsed = true
         mod:uncoverSquares(data, 0, idxs[rng:RandomInt(#idxs) + 1], s, w, h, timer, hintUsed)
         mod:updateBombCount(data, s, w, h, bombCount)
@@ -277,6 +334,16 @@ if REPENTOGON then
       end
     end, false)
     ImGui.AddElement(tab, 'shenanigansSl' .. s .. 'Top3', ImGuiElement.SameLine, '')
+    ImGui.AddButton(tab, btnSeedId, '\u{f4d8}', function()
+      if seed > 0 then
+        local strSeed = Seeds.Seed2String(seed)
+        Isaac.SetClipboard(strSeed)
+        ImGui.PushNotification('Copied seed to clipboard: ' .. strSeed, ImGuiNotificationType.INFO, 5000)
+        local firstClickModW = firstClick % w
+        print('Seed: ' .. strSeed .. ' (' .. seed .. ')' .. '\nDimensions: ' .. w .. 'x' .. h .. ' (' .. (w * h) .. ')' .. '\nBomb count: ' .. bombCount .. '\nFirst click: ' .. firstClick .. ' (row ' .. math.ceil(firstClick / w) .. ' col ' .. (firstClickModW == 0 and w or firstClickModW) .. ')' .. '\n--------------------')
+      end
+    end, false)
+    ImGui.AddElement(tab, 'shenanigansSl' .. s .. 'Top4', ImGuiElement.SameLine, '')
     
     ImGui.AddRadioButtons(tab, radFlagId, function(i)
       mod.flagStatus = i
@@ -285,9 +352,9 @@ if REPENTOGON then
       end
     end, { '\u{f8cc}', mod.flagSolid, mod.flagCheckered }, mod.flagStatus, true)
     ImGui.SetHelpmarker(radFlagId, 'Mouse: uncover square\nFlag: add or remove flag\nCheckered flag: add flag or uncover flagged square\n\nController: hold left or right trigger when clicking to temporarily use flag mode')
-    ImGui.AddElement(tab, 'shenanigansSl' .. s .. 'Top4', ImGuiElement.SameLine, '')
-    ImGui.AddText(tab, string.format(mod.bombTemplate, bombCount), false, txtBombsId)
     ImGui.AddElement(tab, 'shenanigansSl' .. s .. 'Top5', ImGuiElement.SameLine, '')
+    ImGui.AddText(tab, string.format(mod.bombTemplate, bombCount), false, txtBombsId)
+    ImGui.AddElement(tab, 'shenanigansSl' .. s .. 'Top6', ImGuiElement.SameLine, '')
     ImGui.AddText(tab, string.format(mod.timerTemplate, 0), false, txtTimerId)
     ImGui.AddCallback(txtTimerId, ImGuiCallback.Visible, function()
       if timer.enabled then
@@ -305,9 +372,17 @@ if REPENTOGON then
         local btnId = 'shenanigansBtn' .. s .. iLocal
         ImGui.AddButton(tab, btnId, mod.square, function()
           if #data == 0 then
+            seed = mod.seed
+            if seed > 0 then
+              hintUsed = true
+            else
+              local rand = Random()
+              seed = rand <= 0 and 1 or rand
+            end
             timer.enabled = true
             timer.startTime = os.time()
-            mod:generateData(data, bombCount, iLocal, w, h)
+            firstClick = iLocal
+            mod:generateData(data, seed, bombCount, iLocal, w, h)
             mod:uncoverSquares(data, 0, iLocal, s, w, h, timer, hintUsed)
           else
             local flagStatus = (mod.flagStatus ~= 1 and mod:isControllerTriggerPressed()) and 1 or mod.flagStatus
@@ -540,9 +615,8 @@ if REPENTOGON then
     end
   end
   
-  function mod:generateData(data, bombCount, i, w, h)
-    local rand = Random()
-    local rng = RNG(rand <= 0 and 1 or rand, mod.rngShiftIdx)
+  function mod:generateData(data, seed, bombCount, i, w, h)
+    local rng = RNG(seed, mod.rngShiftIdx)
     local totalCount = w * h
     
     local firstClickIsZero = mod.firstClickIsZero
