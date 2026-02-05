@@ -180,8 +180,8 @@ if REPENTOGON then
     ImGui.SetHelpmarker('shenanigansTxtMinesweeperSettingSeed', 'Board generation is based on seed, width x height, bomb count, and first click (location and safe vs safe + empty')
     ImGui.AddElement('shenanigansTabMinesweeperSettings', '', ImGuiElement.SameLine, '')
     ImGui.AddButton('shenanigansTabMinesweeperSettings', 'shenanigansBtnMinesweeperSettingSeed', '\u{f11b}', function()
-      if Isaac.IsInGame() then
-        local seeds = game:GetSeeds()
+      local seeds = game:GetSeeds()
+      if Isaac.IsInGame() and seeds:GetStartSeed() > 0 then
         mod.seed = seeds:GetStartSeed()
         ImGui.UpdateData('shenanigansTxtMinesweeperSettingSeed', ImGuiData.Value, seeds:GetStartSeedString())
       end
