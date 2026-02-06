@@ -177,7 +177,7 @@ if REPENTOGON then
       mod.seed = Seeds.String2Seed(s)
       ImGui.UpdateData('shenanigansTxtMinesweeperSettingSeed', ImGuiData.Value, s)
     end)
-    ImGui.SetHelpmarker('shenanigansTxtMinesweeperSettingSeed', 'Board generation is based on seed, width x height, bomb count, and first click (location and safe vs safe + empty')
+    ImGui.SetHelpmarker('shenanigansTxtMinesweeperSettingSeed', 'Board generation is based on seed, width x height, bomb count, and first click (location and "safe" vs "safe + empty")')
     ImGui.AddElement('shenanigansTabMinesweeperSettings', '', ImGuiElement.SameLine, '')
     ImGui.AddButton('shenanigansTabMinesweeperSettings', 'shenanigansBtnMinesweeperSettingSeed', '\u{f11b}', function()
       local seeds = game:GetSeeds()
