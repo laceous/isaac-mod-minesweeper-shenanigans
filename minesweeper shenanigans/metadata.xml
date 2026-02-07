@@ -24,7 +24,7 @@ There's options to:
     [*]replay a specific seed for a board
     [*]edit custom board: 1x1 to 30x16; bomb count: 0 to 99% max density
 [/list]</description>
-    <version>1.14</version>
+    <version>1.15</version>
     <visibility>Public</visibility>
     <tag id="Lua"/>
 </metadata>

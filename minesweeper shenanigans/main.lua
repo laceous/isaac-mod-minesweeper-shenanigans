@@ -406,17 +406,6 @@ if REPENTOGON then
       return
     end
     
-    local flag = flagStatus == 1
-    if flagStatus == 2 then
-      if not data[i].uncovered then
-        if data[i].flagged then
-          data[i].flagged = false
-        else
-          flag = true
-        end
-      end
-    end
-    
     if mod.chordsEnabled and iter == 0 and data[i].uncovered and data[i].num >= 1 and data[i].num <= 8 then
       local flagCount = 0
       local coveredSquares = {}
@@ -451,6 +440,17 @@ if REPENTOGON then
       end
       
       return
+    end
+    
+    local flag = flagStatus == 1
+    if flagStatus == 2 then
+      if not data[i].uncovered then
+        if data[i].flagged then
+          data[i].flagged = false
+        else
+          flag = true
+        end
+      end
     end
     
     if flag then
